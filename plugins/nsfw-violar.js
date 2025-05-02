@@ -33,7 +33,7 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     }
     
     if (m.isGroup) {
-        let pp = 'https://files.catbox.moe/cnmn0x.jpg'; 
+        let pp = 'https://files.catbox.moe/wfqjqr.mp4'; 
         let pp2 = 'https://files.catbox.moe/xph5x5.mp4'; 
         let pp3 = 'https://files.catbox.moe/4ffxj8.mp4';
         let pp4 = 'https://files.catbox.moe/f6ovgb.mp4';
