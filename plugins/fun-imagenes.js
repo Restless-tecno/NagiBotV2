@@ -6,17 +6,17 @@ const handler = async (m, { conn, command, text }) => {
     // Chupa o Chupesorra
     if (command == 'chupa' || command == 'chupalo') {
     const captionchupa = `*[ 🤣 ] CHUPALO @${who.split('@')[0]}*`
-    conn.sendMessage(m.chat, {image: { url: 'https://telegra.ph/file/dc717696efd6182a47f07.jpg' }, caption: captionchupa, mentions: conn.parseMention(captionchupa)}, {quoted: m});   
+    conn.sendMessage(m.chat, {image: { url: 'https://files.catbox.moe/yxpwbf.jpeg' }, caption: captionchupa, mentions: conn.parseMention(captionchupa)}, {quoted: m});   
     }
     // Aplauso
     if (command == 'aplauso') {
     const captionap = `*[ 🎉 ] FELICIDADES, @${who.split('@')[0]}, ERES UN PENDEJO.*`
-    conn.sendMessage(m.chat, {image: { url: 'https://telegra.ph/file/0e40f5c0cf98dffc55045.jpg' }, caption: captionap, mentions: conn.parseMention(captionap)}, {quoted: m});   
+    conn.sendMessage(m.chat, {image: { url: 'https://files.catbox.moe/7mh57o.jpeg' }, caption: captionap, mentions: conn.parseMention(captionap)}, {quoted: m});   
     }
     // Marron
     if (command == 'marron' || command == 'negro') {
     const captionma = `*[ 💀 ] @${who.split('@')[0]} ES UN(A) MARRÓN DE MRD*`
-    conn.sendMessage(m.chat, {image: { url: 'https://telegra.ph/file/5592d6bd38d411554018c.png' }, caption: captionma, mentions: conn.parseMention(captionma)}, {quoted: m});   
+    conn.sendMessage(m.chat, {image: { url: 'https://files.catbox.moe/8f8y51.jpg' }, caption: captionma, mentions: conn.parseMention(captionma)}, {quoted: m});   
     }
     // Suicide
     if (command == 'suicide' || command == 'suicidar') {
@@ -26,7 +26,7 @@ const handler = async (m, { conn, command, text }) => {
     }
 };
 
-handler.command = ['chupalo', 'chupa', 'aplauso', 'negro', 'marron', 'suicidar', 'suicide']
+handler.command = ['chupalo', 'chupa', 'aplauso', 'marron', 'suicidar', 'suicide']
 handler.group = true
 handler.register = true
 
