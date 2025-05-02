@@ -31,17 +31,17 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     }
     
     if (m.isGroup) {
-        let pp = 'https://files.catbox.moe/p4a3h0.gif'; 
-        let pp2 = 'https://files.catbox.moe/sdrjkn.jpeg'; 
-        let pp3 = 'https://files.catbox.moe/3y1hsw.jpeg';
-        let pp4 = 'https://files.catbox.moe/8zznyi.jpeg';
-        let pp5 = 'https://files.catbox.moe/067zfv.gif';
-        let pp6 = 'https://files.catbox.moe/rtu9do.gif';
-        let pp7 = 'https://files.catbox.moe/vp42zo.gif';
-        let pp8 = 'https://files.catbox.moe/ukq9n2.gif';
-        let pp9 = 'https://files.catbox.moe/jsma1w.gif';
-        let pp10 = 'https://files.catbox.moe/l4nnpo.gif';
-        let pp11 = 'https://files.catbox.moe/0h835p.gif';
+        let pp = 'https://files.catbox.moe/yjl6ca.mp4'; 
+        let pp2 = 'https://files.catbox.moe/z4gn6n.mp4'; 
+        let pp3 = 'https://files.catbox.moe/kkgayp.mp4';
+        let pp4 = 'https://files.catbox.moe/u4997a.mp4';
+        let pp5 = 'https://files.catbox.moe/1shm3w.mp4';
+        let pp6 = 'https://files.catbox.moe/ghhml4.mp4';
+        let pp7 = 'https://files.catbox.moe/q2p2co.mp4';
+        let pp8 = 'https://files.catbox.moe/brktzk.mp4';
+        let pp9 = 'https://files.catbox.moe/xtagq2.mp4';
+        let pp10 = 'https://files.catbox.moe/fbuih4.mp4';
+        let pp11 = 'https://files.catbox.moe/pm0kkd.mp4';
         
         const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10, pp11];
         const video = videos[Math.floor(Math.random() * videos.length)];
