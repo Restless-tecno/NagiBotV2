@@ -25,7 +25,7 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     if (m.mentionedJid.length > 0) {
         str = `\`${name2}\` *Le dió un coñazo a* \`${name || who}\`.`;
     } else if (m.quoted) {
-        str = `\`${name2}\` *Le dió un coñazo a* \`${name || who}\`.`;
+        str = `\`${name2}\` *Le dió en la madre a* \`${name || who}\`.`;
     } else {
         str = `\`${name2}\` *Mejor no menciono como quedo*`.trim();
     }
