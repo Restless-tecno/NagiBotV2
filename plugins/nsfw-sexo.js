@@ -33,13 +33,13 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     if (m.isGroup) {
         let pp = 'https://files.catbox.moe/6xwhsj.mp4'; 
         let pp2 = 'https://files.catbox.moe/0heauq.mp4'; 
-        let pp3 = 'https://files.catbox.moe/yzc9to.gif';
-        let pp4 = 'https://files.catbox.moe/r7qgoo.gif';
-        let pp5 = 'https://files.catbox.moe/g461iy.gif';
-        let pp6 = 'https://files.catbox.moe/80n2xs.gif';
+        let pp3 = 'https://files.catbox.moe/9u3osk.mp4';
+        let pp4 = 'https://files.catbox.moe/shkj8k.mp4';
+        let pp5 = 'https://files.catbox.moe/a3ymzk.mp4';
+        let pp6 = 'https://files.catbox.moe/qv67t0.mp4';
         let pp7 = 'https://files.catbox.moe/v9c6en.mp4';
-        let pp8 = 'https://files.catbox.moe/ss4uug.gif';
-        let pp9 = 'https://files.catbox.moe/agh9l8.gif';
+        let pp8 = 'https://files.catbox.moe/ppptxp.mp4';
+        let pp9 = 'https://files.catbox.moe/jq7yxl.mp4';
         
         const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp8, pp9];
         const video = videos[Math.floor(Math.random() * videos.length)];
