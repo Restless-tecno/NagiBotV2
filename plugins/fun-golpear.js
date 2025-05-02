@@ -27,21 +27,21 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     } else if (m.quoted) {
         str = `\`${name2}\` *Le dió un coñazo a* \`${name || who}\`.`;
     } else {
-        str = `\`${name2}\` *:"Eso le tuvo que doler"*`.trim();
+        str = `\`${name2}\` *Mejor no menciono como quedo*`.trim();
     }
     
     if (m.isGroup) {
-        let pp = ''; 
-        let pp2 = ''; 
-        let pp3 = '';
-        let pp4 = '';
-        let pp5 = '';
-        let pp6 = '';
-        let pp7 = '';
-        let pp8 = '';
-        let pp9 = '';
-        let pp10 = '';
-        let pp11 = '';
+        let pp = 'https://files.catbox.moe/tzsq3s.mp4'; 
+        let pp2 = 'https://files.catbox.moe/r8rv9u.mp4'; 
+        let pp3 = 'https://files.catbox.moe/wh0vuw.mp4';
+        let pp4 = 'https://files.catbox.moe/owrgnz.mp4';
+        let pp5 = 'https://files.catbox.moe/bj6wnz.mp4';
+        let pp6 = 'https://files.catbox.moe/l7sjzv.mp4';
+        let pp7 = 'https://files.catbox.moe/ymvjut.mp4';
+        let pp8 = 'https://files.catbox.moe/htw8ln.mp4';
+        let pp9 = 'https://files.catbox.moe/jfx14r.mp4';
+        let pp10 = 'https://files.catbox.moe/1u8dkn.mp4';
+        let pp11 = 'https://files.catbox.moe/vgf43j.mp4';
         
         const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10, pp11];
         const video = videos[Math.floor(Math.random() * videos.length)];
