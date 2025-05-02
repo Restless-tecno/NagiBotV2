@@ -23,25 +23,25 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
 
     let str;
     if (m.mentionedJid.length > 0) {
-        str = `\`${name2}\` *Golpeó a* \`${name || who}\`.`;
+        str = `\`${name2}\` *Le dió un coñazo a* \`${name || who}\`.`;
     } else if (m.quoted) {
         str = `\`${name2}\` *Le dió un coñazo a* \`${name || who}\`.`;
     } else {
-        str = `\`${name2}\` *"Eso le tuvo que doler a"*`.trim();
+        str = `\`${name2}\` *:"Eso le tuvo que doler"*`.trim();
     }
     
     if (m.isGroup) {
-        let pp = 'https://files.catbox.moe/dv9vb6.gif'; 
-        let pp2 = 'https://files.catbox.moe/2v91dg.gif'; 
-        let pp3 = 'https://files.catbox.moe/y2mzgf.gif';
-        let pp4 = 'https://files.catbox.moe/4okxba.gif';
-        let pp5 = 'https://files.catbox.moe/b221o7.gif';
-        let pp6 = 'https://files.catbox.moe/1hoe4n.gif';
-        let pp7 = 'https://files.catbox.moe/5g2niu.gif';
-        let pp8 = 'https://files.catbox.moe/ruenwb.gif';
-        let pp9 = 'https://files.catbox.moe/fi0xhd.gif';
-        let pp10 = 'https://files.catbox.moe/cakk69.gif';
-        let pp11 = 'https://files.catbox.moe/vr83b0.gif';
+        let pp = ''; 
+        let pp2 = ''; 
+        let pp3 = '';
+        let pp4 = '';
+        let pp5 = '';
+        let pp6 = '';
+        let pp7 = '';
+        let pp8 = '';
+        let pp9 = '';
+        let pp10 = '';
+        let pp11 = '';
         
         const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10, pp11];
         const video = videos[Math.floor(Math.random() * videos.length)];
