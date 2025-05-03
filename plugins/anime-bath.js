@@ -34,6 +34,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         let pp4 = 'https://qu.ax/kwcA.mp4'
         let pp5 = 'https://qu.ax/XNDF.mp4'
         let pp6 = 'https://qu.ax/GZDB.mp4'
+        let pp7 = ''
         
         const videos = [pp, pp2, pp3, pp4, pp5, pp6];
         const video = videos[Math.floor(Math.random() * videos.length)];
