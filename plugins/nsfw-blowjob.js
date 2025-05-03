@@ -31,18 +31,19 @@ if (!db.data.chats[m.chat].nsfw && m.isGroup) {
     }
     
     if (m.isGroup) {
-        let pp = 'https://telegra.ph/file/0260766c6b36537aa2802.mp4'; 
-        let pp2 = 'https://telegra.ph/file/2c1c68c9e310f60f1ded1.mp4'; 
-        let pp3 = 'https://telegra.ph/file/e14f5a31d3b3c279f5593.mp4';
-        let pp4 = 'https://telegra.ph/file/e020aa808f154a30b8da7.mp4';
-        let pp5 = 'https://telegra.ph/file/1cafb3e72664af94d45c0.mp4';
-        let pp6 = 'https://telegra.ph/file/72b49d3b554df64e377bb.mp4';
-        let pp7 = 'https://telegra.ph/file/9687aedfd58a3110c7f88.mp4';
-        let pp8 = 'https://telegra.ph/file/c799ea8a1ed0fd336579c.mp4';
-        let pp9 = 'https://telegra.ph/file/7352d18934971201deed5.mp4';
-        let pp10 = 'https://telegra.ph/file/379edd38bac6de4258843.mp4';
+        let pp = 'https://files.catbox.moe/w5u266.mp4'; 
+        let pp2 = 'https://files.catbox.moe/ztq87p.mp4'; 
+        let pp3 = 'https://files.catbox.moe/7b7mwl.mp4';
+        let pp4 = 'https://files.catbox.moe/4g0a66.mp4';
+        let pp5 = 'https://files.catbox.moe/5f4k8a.mp4';
+        let pp6 = 'https://files.catbox.moe/mdpjh3.mp4';
+        let pp7 = 'https://files.catbox.moe/i6l08x.mp4';
+        let pp8 = 'https://files.catbox.moe/3whwql.mp4';
+        let pp9 = 'https://files.catbox.moe/3jhynx.mp4';
+        let pp10 = 'https://files.catbox.moe/8c1ew0.mp4';
+        let pp11 = 'https://files.catbox.moe/lljb6g.mp4';
         
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp8, pp9, pp10];
+        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp8, pp9, pp10, pp11];
         const video = videos[Math.floor(Math.random() * videos.length)];
 
         let mentions = [who];
