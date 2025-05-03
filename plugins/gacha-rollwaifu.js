@@ -65,7 +65,7 @@ let handler = async (m, { conn }) => {
 ⚥ Género » *${randomCharacter.gender}*
 ✰ Valor » *${randomCharacter.value}*
 ♡ Estado » ${statusMessage}
-❖ Fuente » *${randomCharacter.source}*;
+❖ Fuente » *${randomCharacter.source}*`;
 
         const mentions = userEntry ? [userEntry.userId] : [];
         await conn.sendFile(m.chat, randomImage, `${randomCharacter.name}.jpg`, message, m, { mentions });
@@ -90,7 +90,7 @@ let handler = async (m, { conn }) => {
     }
 };
 
-handler.help = ['ver/rw/rollwaifu'];
+handler.help = ['ver', 'rw', 'rollwaifu'];
 handler.tags = ['gacha'];
 handler.command = ['ver', 'rw', 'rollwaifu'];
 handler.group = true;
