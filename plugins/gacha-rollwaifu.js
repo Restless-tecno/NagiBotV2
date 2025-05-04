@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs';
+import { hideIdInMessage, generateRandomValue } from './gacha-search.js';
 
-const charactersFilePath = './src/database/characters.json';
-const haremFilePath = './src/database/harem.json';
+const charactersFilePath = '../src/database/characters.json';
+const haremFilePath = '../src/database/harem.json';
 
 const cooldowns = {};
 
@@ -10,15 +11,15 @@ async function loadCharacters() {
         const data = await fs.readFile(charactersFilePath, 'utf-8');
         return JSON.parse(data);
     } catch (error) {
-        throw new Error('❀ No se pudo cargar el archivo characters.json.');
+        throw new Error('❀ Error al cargar personajes');
     }
 }
 
 async function saveCharacters(characters) {
     try {
-        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2), 'utf-8');
+        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2));
     } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo characters.json.');
+        throw new Error('❀ Error al guardar personajes');
     }
 }
 
@@ -33,9 +34,9 @@ async function loadHarem() {
 
 async function saveHarem(harem) {
     try {
-        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2), 'utf-8');
+        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
     } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo harem.json.');
+        throw new Error('❀ Error al guardar harem');
     }
 }
 
@@ -44,10 +45,10 @@ let handler = async (m, { conn }) => {
     const now = Date.now();
 
     if (cooldowns[userId] && now < cooldowns[userId]) {
-        const remainingTime = Math.ceil((cooldowns[userId] - now) / 1000);
-        const minutes = Math.floor(remainingTime / 60);
-        const seconds = remainingTime % 60;
-        return await conn.reply(m.chat, `《✧》Debes esperar *${minutes} minutos y ${seconds} segundos* para usar *#rw* de nuevo.`, m);
+        const remaining = Math.ceil((cooldowns[userId] - now) / 1000);
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        return conn.reply(m.chat, `《✧》Espera *${minutes}m ${seconds}s* para usar *#rw*`, m);
     }
 
     try {
@@ -55,32 +56,30 @@ let handler = async (m, { conn }) => {
         const randomCharacter = characters[Math.floor(Math.random() * characters.length)];
         const randomImage = randomCharacter.img[Math.floor(Math.random() * randomCharacter.img.length)];
 
+        // Asignar nuevo valor aleatorio
+        randomCharacter.value = String(generateRandomValue(randomCharacter.name));
+
         const harem = await loadHarem();
         const userEntry = harem.find(entry => entry.characterId === randomCharacter.id);
-        const statusMessage = randomCharacter.user 
-            ? `Reclamado por @${randomCharacter.user.split('@')[0]}` 
-            : 'Libre';
+        const status = randomCharacter.user ? `Reclamado por @${randomCharacter.user.split('@')[0]}` : 'Libre';
 
-        const randomValue = Math.floor(Math.random() * (5000 - 50 + 1)) + 50;
-
-        const message = `❀ Nombre » *${randomCharacter.name}*
+        const baseMsg = `❀ Nombre » *${randomCharacter.name}*
 ⚥ Género » *${randomCharacter.gender}*
-✰ Valor » *${randomValue}*
-♡ Estado » ${statusMessage}
+✰ Valor » *${randomCharacter.value}*
+♡ Estado » ${status}
 ❖ Fuente » *${randomCharacter.source}*`;
 
-        const mentions = userEntry ? [userEntry.userId] : [];
-        await conn.sendFile(m.chat, randomImage, `${randomCharacter.name}.jpg`, message, m, { mentions });
+        await conn.sendFile(m.chat, randomImage, 'character.jpg', hideIdInMessage(baseMsg, randomCharacter.id), m, {
+            mentions: userEntry ? [userEntry.userId] : []
+        });
 
         if (!randomCharacter.user) {
-            randomCharacter.user = userId;
-            const userEntry = {
-                userId: userId,
+            harem.push({
+                userId,
                 characterId: randomCharacter.id,
                 lastVoteTime: now,
                 voteCooldown: now + 1.5 * 60 * 60 * 1000
-            };
-            harem.push(userEntry);
+            });
             await saveHarem(harem);
         }
 
@@ -88,13 +87,13 @@ let handler = async (m, { conn }) => {
         cooldowns[userId] = now + 15 * 60 * 1000;
 
     } catch (error) {
-        await conn.reply(m.chat, `✘ Error al cargar el personaje: ${error.message}`, m);
+        await conn.reply(m.chat, `✘ Error: ${error.message}`, m);
     }
 };
 
-handler.help = ['ver', 'rw', 'rollwaifu'];
+handler.help = ['rw', 'rollwaifu'];
 handler.tags = ['gacha'];
-handler.command = ['ver', 'rw', 'rollwaifu'];
+handler.command = ['rw', 'rollwaifu'];
 handler.group = true;
 handler.register = true;
 
