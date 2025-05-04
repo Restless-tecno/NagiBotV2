@@ -60,6 +60,9 @@ cd NagiBotV2
 ```bash
 yarn install && npm install
 ```
+```bash
+npm install axios
+```
 
 ```bash
 npm start
