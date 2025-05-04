@@ -1,54 +1,54 @@
 import { promises as fs } from 'fs';
-import { hideIdInMessage, generateRandomValue, searchCharacter } from './gacha-search.js';
 
-const charactersFilePath = '../src/database/characters.json';
+const charactersFilePath = './src/database/characters.json';
+const haremFilePath = './src/database/harem.json';
 
 async function loadCharacters() {
     try {
         const data = await fs.readFile(charactersFilePath, 'utf-8');
         return JSON.parse(data);
     } catch (error) {
-        throw new Error('❀ Error al cargar personajes');
+        throw new Error('❀ No se pudo cargar el archivo characters.json.');
+    }
+}
+
+async function loadHarem() {
+    try {
+        const data = await fs.readFile(haremFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        return [];
     }
 }
 
 let handler = async (m, { conn, args }) => {
-    if (!args.length) {
-        return conn.reply(m.chat, '《✧》Usa: *#wvideo <nombre>*', m);
-    }
+    const characterName = args.join(' ').toLowerCase().trim();
 
-    const query = args.join(' ').toLowerCase();
     try {
-        let characters = await loadCharacters();
-        let character = characters.find(c => 
-            c.name.toLowerCase().includes(query)
-        );
+        const characters = await loadCharacters();
+        const character = characters.find(c => c.name.toLowerCase() === characterName);
 
         if (!character) {
-            character = await searchCharacter(query);
-            if (!character) {
-                return conn.reply(m.chat, '《✧》Personaje no encontrado', m);
-            }
+            await conn.reply(m.chat, `《✧》No se ha encontrado el personaje *${characterName}*. Asegúrate de que el nombre esté correcto.`, m);
+            return;
         }
 
+        // Seleccionar un video aleatorio
         const randomVideo = character.vid[Math.floor(Math.random() * character.vid.length)];
-        const value = character.value || String(generateRandomValue(character.name));
 
-        const infoMsg = `❀ Nombre » *${character.name}*
+        const message = `❀ Nombre » *${character.name}*
 ⚥ Género » *${character.gender}*
-✰ Valor » *${value}*
 ❖ Fuente » *${character.source}*`;
 
-        await conn.sendFile(m.chat, randomVideo, 'character.mp4', hideIdInMessage(infoMsg, character.id), m);
-
+        await conn.sendFile(m.chat, randomVideo, `${character.name}.mp4`, message, m);
     } catch (error) {
-        await conn.reply(m.chat, `✘ Error: ${error.message}`, m);
+        await conn.reply(m.chat, `✘ Error al cargar el video del personaje: ${error.message}`, m);
     }
 };
 
-handler.help = ['wvideo <nombre>'];
-handler.tags = ['gacha'];
-handler.command = ['wvideo', 'waifuvideo'];
+handler.help = ['wvideo <nombre del personaje>'];
+handler.tags = ['anime'];
+handler.command = ['charvideo', 'cvideo', 'wvideo', 'waifuvideo'];
 handler.group = true;
 handler.register = true;
 
