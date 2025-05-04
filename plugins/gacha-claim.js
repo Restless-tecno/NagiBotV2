@@ -36,15 +36,15 @@ let handler = async (m, { conn }) => {
     if (m.quoted && m.quoted.sender === conn.user.jid) {
         try {
             const characters = await loadCharacters();
-            const characterIdMatch = m.quoted.text.match(/ID: \*(.+?)\*/);
+            const characterNameMatch = m.quoted.text.match(/❀ Nombre » \*(.+?)\*/);
 
-            if (!characterIdMatch) {
-                await conn.reply(m.chat, '《✧》No se pudo encontrar el ID del personaje en el mensaje citado.', m);
+            if (!characterNameMatch) {
+                await conn.reply(m.chat, '《✧》No se pudo encontrar el nombre del personaje en el mensaje citado.', m);
                 return;
             }
 
-            const characterId = characterIdMatch[1];
-            const character = characters.find(c => c.id === characterId);
+            const characterName = characterNameMatch[1];
+            const character = characters.find(c => c.name === characterName);
 
             if (!character) {
                 await conn.reply(m.chat, '《✧》El mensaje citado no es un personaje válido.', m);
@@ -52,7 +52,7 @@ let handler = async (m, { conn }) => {
             }
 
             if (character.user && character.user !== userId) {
-                await conn.reply(m.chat, `《✧》El personaje ya ha sido reclamado por @${character.user.split('@')[0]}, inténtalo a la próxima :v.`, m, { mentions: [character.user] });
+                await conn.reply(m.chat, `《✧》El personaje *${character.name}* ya ha sido reclamado por @${character.user.split('@')[0]}, inténtalo a la próxima :v.`, m, { mentions: [character.user] });
                 return;
             }
 
