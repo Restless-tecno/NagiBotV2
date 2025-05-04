@@ -1,54 +1,54 @@
 import { promises as fs } from 'fs';
+import { hideIdInMessage, generateRandomValue, searchCharacter } from './gacha-search.js';
 
-const charactersFilePath = './src/database/characters.json';
-const haremFilePath = './src/database/harem.json';
+const charactersFilePath = '../src/database/characters.json';
 
 async function loadCharacters() {
     try {
         const data = await fs.readFile(charactersFilePath, 'utf-8');
         return JSON.parse(data);
     } catch (error) {
-        throw new Error('❀ No se pudo cargar el archivo characters.json.');
-    }
-}
-
-async function loadHarem() {
-    try {
-        const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        return [];
+        throw new Error('❀ Error al cargar personajes');
     }
 }
 
 let handler = async (m, { conn, args }) => {
-    const characterName = args.join(' ').toLowerCase().trim();
+    if (!args.length) {
+        return conn.reply(m.chat, '《✧》Usa: *#wimage <nombre>*', m);
+    }
 
+    const query = args.join(' ').toLowerCase();
     try {
-        const characters = await loadCharacters();
-        const character = characters.find(c => c.name.toLowerCase() === characterName);
+        let characters = await loadCharacters();
+        let character = characters.find(c => 
+            c.name.toLowerCase().includes(query)
+        );
 
         if (!character) {
-            await conn.reply(m.chat, `《✧》No se ha encontrado el personaje *${characterName}*. Asegúrate de que el nombre esté correcto.`, m);
-            return;
+            character = await searchCharacter(query);
+            if (!character) {
+                return conn.reply(m.chat, '《✧》Personaje no encontrado', m);
+            }
         }
 
-        // Seleccionar una imagen aleatoria
         const randomImage = character.img[Math.floor(Math.random() * character.img.length)];
+        const value = character.value || String(generateRandomValue(character.name));
 
-        const message = `❀ Nombre » *${character.name}*
+        const infoMsg = `❀ Nombre » *${character.name}*
 ⚥ Género » *${character.gender}*
+✰ Valor » *${value}*
 ❖ Fuente » *${character.source}*`;
 
-        await conn.sendFile(m.chat, randomImage, `${character.name}.jpg`, message, m);
+        await conn.sendFile(m.chat, randomImage, 'character.jpg', hideIdInMessage(infoMsg, character.id), m);
+
     } catch (error) {
-        await conn.reply(m.chat, `✘ Error al cargar la imagen del personaje: ${error.message}`, m);
+        await conn.reply(m.chat, `✘ Error: ${error.message}`, m);
     }
 };
 
-handler.help = ['wimage <nombre del personaje>'];
-handler.tags = ['anime'];
-handler.command = ['charimage', 'cimage', 'wimage', 'waifuimage'];
+handler.help = ['wimage <nombre>'];
+handler.tags = ['gacha'];
+handler.command = ['wimage', 'waifuimage'];
 handler.group = true;
 handler.register = true;
 
