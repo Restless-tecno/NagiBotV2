@@ -1422,7 +1422,7 @@
     },
     {
         "id": "80",
-        "name": "Shoto todoroki",
+        "name": "Shoto Todoroki",
         "gender": "Hombre",
         "value": "100",
         "source": "Boku no hero",
@@ -1496,10 +1496,10 @@
     },
     {
         "id": "84",
-        "name": "Izuku Midoriya",
+        "name": "Poner nuevo",
         "gender": "Hombre",
         "value": "100",
-        "source": "Boku no hero",
+        "source": "Poner nuevo",
         "img": [
             "https://qu.ax/lEFVm.jpg",
             "https://qu.ax/bpMLa.jpg",
