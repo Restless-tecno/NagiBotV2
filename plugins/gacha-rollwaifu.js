@@ -61,9 +61,11 @@ let handler = async (m, { conn }) => {
             ? `Reclamado por @${randomCharacter.user.split('@')[0]}` 
             : 'Libre';
 
+        const randomValue = Math.floor(Math.random() * (5000 - 50 + 1)) + 50;
+
         const message = `❀ Nombre » *${randomCharacter.name}*
 ⚥ Género » *${randomCharacter.gender}*
-✰ Valor » *${randomCharacter.value}*
+✰ Valor » *${randomValue}*
 ♡ Estado » ${statusMessage}
 ❖ Fuente » *${randomCharacter.source}*`;
 
