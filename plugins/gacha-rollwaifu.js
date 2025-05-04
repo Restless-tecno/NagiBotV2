@@ -54,6 +54,10 @@ let handler = async (m, { conn }) => {
         const characters = await loadCharacters();
         const randomCharacter = characters[Math.floor(Math.random() * characters.length)];
         const randomImage = randomCharacter.img[Math.floor(Math.random() * randomCharacter.img.length)];
+        
+        // Generar valor aleatorio entre 50 y 10000
+        const randomValue = Math.floor(Math.random() * (10000 - 50 + 1)) + 50;
+        randomCharacter.value = randomValue;
 
         const harem = await loadHarem();
         const userEntry = harem.find(entry => entry.characterId === randomCharacter.id);
