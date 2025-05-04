@@ -1,24 +1,74 @@
 import { promises as fs } from 'fs';
+import axios from 'axios';
 
-const charactersFilePath = './src/database/characters.json';
 const haremFilePath = './src/database/harem.json';
-
 const cooldowns = {};
 
-async function loadCharacters() {
-    try {
-        const data = await fs.readFile(charactersFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        throw new Error('❀ No se pudo cargar el archivo characters.json.');
+// Lista de APIs para obtener personajes aleatorios
+const CHARACTER_APIS = [
+    {
+        name: 'Waifu.im',
+        url: 'https://api.waifu.im/random',
+        parser: (data) => ({
+            id: data.images[0].image_id.toString(),
+            name: data.images[0].character || 'Desconocido',
+            gender: data.images[0].gender || 'Desconocido',
+            source: data.images[0].source || 'Desconocido',
+            img: [data.images[0].url],
+            value: Math.floor(Math.random() * (10000 - 50 + 1)) + 50
+        })
+    },
+    {
+        name: 'Animechan',
+        url: 'https://animechan.xyz/api/random',
+        parser: (data) => ({
+            id: `animechan-${Date.now()}`,
+            name: data.character,
+            gender: 'Desconocido',
+            source: data.anime,
+            img: [`https://api.waifu.pics/sfw/${Math.random() > 0.5 ? 'waifu' : 'husbando'}`],
+            value: Math.floor(Math.random() * (5000 - 50 + 1)) + 50
+        })
+    },
+    {
+        name: 'Waifu.pics',
+        url: 'https://api.waifu.pics/sfw/waifu',
+        parser: (data) => ({
+            id: `waifupics-${Date.now()}`,
+            name: 'Waifu Aleatoria',
+            gender: 'Femenino',
+            source: 'Desconocido',
+            img: [data.url],
+            value: Math.floor(Math.random() * (8000 - 50 + 1)) + 50
+        })
     }
-}
+];
 
-async function saveCharacters(characters) {
+// Función para obtener un personaje aleatorio
+async function getRandomCharacter() {
     try {
-        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2), 'utf-8');
+        // Seleccionar una API aleatoria
+        const api = CHARACTER_APIS[Math.floor(Math.random() * CHARACTER_APIS.length)];
+        const response = await axios.get(api.url);
+        
+        // Parsear los datos según la API
+        const character = api.parser(response.data);
+        character.user = null; // Asegurar que no tenga dueño inicialmente
+        
+        return character;
+        
     } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo characters.json.');
+        console.error('Error al obtener personaje:', error);
+        // Datos de respaldo si fallan todas las APIs
+        return {
+            id: `fallback-${Date.now()}`,
+            name: ['Sakura', 'Naruto', 'Goku', 'Hinata', 'Sasuke'][Math.floor(Math.random() * 5)],
+            gender: ['Femenino', 'Masculino'][Math.floor(Math.random() * 2)],
+            source: ['Naruto', 'Dragon Ball', 'One Piece', 'Bleach', 'Attack on Titan'][Math.floor(Math.random() * 5)],
+            img: ['https://i.imgur.com/undefined.jpg'],
+            value: Math.floor(Math.random() * (10000 - 50 + 1)) + 50,
+            user: null
+        };
     }
 }
 
@@ -51,18 +101,26 @@ let handler = async (m, { conn }) => {
     }
 
     try {
-        const characters = await loadCharacters();
-        const randomCharacter = characters[Math.floor(Math.random() * characters.length)];
-        const randomImage = randomCharacter.img[Math.floor(Math.random() * randomCharacter.img.length)];
-        
-        // Generar valor aleatorio entre 50 y 10000
-        const randomValue = Math.floor(Math.random() * (10000 - 50 + 1)) + 50;
-        randomCharacter.value = randomValue;
-
         const harem = await loadHarem();
+        let randomCharacter;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        // Buscar un personaje no reclamado
+        do {
+            randomCharacter = await getRandomCharacter();
+            attempts++;
+            
+            // Verificar si el personaje ya está reclamado
+            const isClaimed = harem.some(entry => entry.characterId === randomCharacter.id);
+            if (!isClaimed || attempts >= maxAttempts) break;
+            
+        } while (true);
+
+        const randomImage = randomCharacter.img[0];
         const userEntry = harem.find(entry => entry.characterId === randomCharacter.id);
-        const statusMessage = randomCharacter.user 
-            ? `Reclamado por @${randomCharacter.user.split('@')[0]}` 
+        const statusMessage = userEntry 
+            ? `Reclamado por @${userEntry.userId.split('@')[0]}` 
             : 'Libre';
 
         const message = `❀ Nombre » *${randomCharacter.name}*
@@ -74,22 +132,21 @@ let handler = async (m, { conn }) => {
         const mentions = userEntry ? [userEntry.userId] : [];
         await conn.sendFile(m.chat, randomImage, `${randomCharacter.name}.jpg`, message, m, { mentions });
 
-        if (!randomCharacter.user) {
-            randomCharacter.user = userId;
-            const userEntry = {
+        if (!userEntry) {
+            const newEntry = {
                 userId: userId,
                 characterId: randomCharacter.id,
                 lastVoteTime: now,
                 voteCooldown: now + 1.5 * 60 * 60 * 1000
             };
-            harem.push(userEntry);
+            harem.push(newEntry);
             await saveHarem(harem);
         }
 
-        await saveCharacters(characters);
         cooldowns[userId] = now + 15 * 60 * 1000;
 
     } catch (error) {
+        console.error('Error en el handler:', error);
         await conn.reply(m.chat, `✘ Error al cargar el personaje: ${error.message}`, m);
     }
 };
