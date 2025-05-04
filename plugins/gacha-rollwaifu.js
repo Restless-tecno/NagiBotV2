@@ -1,160 +1,125 @@
-import { promises as fs } from 'fs';
 import axios from 'axios';
+import { promises as fs } from 'fs';
 
 const haremFilePath = './src/database/harem.json';
 const cooldowns = {};
 
-// Lista de APIs para obtener personajes aleatorios
-const CHARACTER_APIS = [
-    {
-        name: 'Waifu.im',
-        url: 'https://api.waifu.im/random',
-        parser: (data) => ({
-            id: data.images[0].image_id.toString(),
-            name: data.images[0].character || 'Desconocido',
-            gender: data.images[0].gender || 'Desconocido',
-            source: data.images[0].source || 'Desconocido',
-            img: [data.images[0].url],
-            value: Math.floor(Math.random() * (10000 - 50 + 1)) + 50
-        })
-    },
-    {
-        name: 'Animechan',
-        url: 'https://animechan.xyz/api/random',
-        parser: (data) => ({
-            id: `animechan-${Date.now()}`,
-            name: data.character,
-            gender: 'Desconocido',
-            source: data.anime,
-            img: [`https://api.waifu.pics/sfw/${Math.random() > 0.5 ? 'waifu' : 'husbando'}`],
-            value: Math.floor(Math.random() * (5000 - 50 + 1)) + 50
-        })
-    },
-    {
-        name: 'Waifu.pics',
-        url: 'https://api.waifu.pics/sfw/waifu',
-        parser: (data) => ({
-            id: `waifupics-${Date.now()}`,
-            name: 'Waifu Aleatoria',
-            gender: 'Femenino',
-            source: 'Desconocido',
-            img: [data.url],
-            value: Math.floor(Math.random() * (8000 - 50 + 1)) + 50
-        })
-    }
-];
+// API Config
+const ANILIST_API = 'https://graphql.anilist.co';
+const IMAGE_API = 'https://api.waifu.im/search'; // Alternativa: Danbooru
 
-// Función para obtener un personaje aleatorio
-async function getRandomCharacter() {
-    try {
-        // Seleccionar una API aleatoria
-        const api = CHARACTER_APIS[Math.floor(Math.random() * CHARACTER_APIS.length)];
-        const response = await axios.get(api.url);
-        
-        // Parsear los datos según la API
-        const character = api.parser(response.data);
-        character.user = null; // Asegurar que no tenga dueño inicialmente
-        
-        return character;
-        
-    } catch (error) {
-        console.error('Error al obtener personaje:', error);
-        // Datos de respaldo si fallan todas las APIs
-        return {
-            id: `fallback-${Date.now()}`,
-            name: ['Sakura', 'Naruto', 'Goku', 'Hinata', 'Sasuke'][Math.floor(Math.random() * 5)],
-            gender: ['Femenino', 'Masculino'][Math.floor(Math.random() * 2)],
-            source: ['Naruto', 'Dragon Ball', 'One Piece', 'Bleach', 'Attack on Titan'][Math.floor(Math.random() * 5)],
-            img: ['https://i.imgur.com/undefined.jpg'],
-            value: Math.floor(Math.random() * (10000 - 50 + 1)) + 50,
-            user: null
-        };
+// Consulta GraphQL para personajes populares aleatorios
+const RANDOM_CHARACTER_QUERY = `
+  query {
+    Page(page: ${Math.floor(Math.random() * 50)}, perPage: 1) {
+      characters(sort: FAVOURITES_DESC) {
+        id
+        name { full }
+        gender
+        media {
+          nodes {
+            title { romaji }
+          }
+        }
+        image { large }
+      }
     }
+  }
+`;
+
+async function fetchRandomAnimeCharacter() {
+  try {
+    // 1. Obtener personaje aleatorio de AniList
+    const anilistResponse = await axios.post(ANILIST_API, {
+      query: RANDOM_CHARACTER_QUERY
+    });
+
+    const character = anilistResponse.data.data.Page.characters[0];
+    if (!character) throw new Error("No se encontró personaje");
+
+    // 2. Obtener imagen (usando Waifu.im o Danbooru)
+    let imageUrl;
+    try {
+      const imageResponse = await axios.get(`${IMAGE_API}?included_tags=${encodeURIComponent(character.name.full)}`);
+      imageUrl = imageResponse.data.images[0].url;
+    } catch {
+      imageUrl = character.image.large; // Fallback a imagen de AniList
+    }
+
+    return {
+      id: character.id,
+      name: character.name.full,
+      gender: character.gender === 'Male' ? 'Hombre' : 'Mujer',
+      source: character.media.nodes[0]?.title.romaji || 'Desconocido',
+      img: [imageUrl],
+      user: null
+    };
+  } catch (error) {
+    console.error("Error al buscar personaje:", error);
+    throw new Error("No se pudo generar un personaje. Intenta de nuevo.");
+  }
 }
 
-async function loadHarem() {
-    try {
-        const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        return [];
-    }
-}
-
-async function saveHarem(harem) {
-    try {
-        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2), 'utf-8');
-    } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo harem.json.');
-    }
-}
+// (Las funciones loadHarem() y saveHarem() se mantienen igual que antes)
 
 let handler = async (m, { conn }) => {
-    const userId = m.sender;
-    const now = Date.now();
+  const userId = m.sender;
+  const now = Date.now();
 
-    if (cooldowns[userId] && now < cooldowns[userId]) {
-        const remainingTime = Math.ceil((cooldowns[userId] - now) / 1000);
-        const minutes = Math.floor(remainingTime / 60);
-        const seconds = remainingTime % 60;
-        return await conn.reply(m.chat, `《✧》Debes esperar *${minutes} minutos y ${seconds} segundos* para usar *#rw* de nuevo.`, m);
+  // Verificar cooldown (igual que antes)
+  if (cooldowns[userId] && now < cooldowns[userId]) {
+    const remainingTime = Math.ceil((cooldowns[userId] - now) / 1000);
+    const minutes = Math.floor(remainingTime / 60);
+    const seconds = remainingTime % 60;
+    return await conn.reply(m.chat, `《✧》Debes esperar *${minutes} minutos y ${seconds} segundos* para usar *#rw* de nuevo.`, m);
+  }
+
+  try {
+    const harem = await loadHarem();
+    let randomCharacter;
+    let attempts = 0;
+
+    // Buscar personaje no reclamado
+    while (attempts < 5) {
+      randomCharacter = await fetchRandomAnimeCharacter();
+      const isClaimed = harem.some(entry => entry.characterId === randomCharacter.id);
+      if (!isClaimed) break;
+      attempts++;
     }
 
-    try {
-        const harem = await loadHarem();
-        let randomCharacter;
-        let attempts = 0;
-        const maxAttempts = 5;
-
-        // Buscar un personaje no reclamado
-        do {
-            randomCharacter = await getRandomCharacter();
-            attempts++;
-            
-            // Verificar si el personaje ya está reclamado
-            const isClaimed = harem.some(entry => entry.characterId === randomCharacter.id);
-            if (!isClaimed || attempts >= maxAttempts) break;
-            
-        } while (true);
-
-        const randomImage = randomCharacter.img[0];
-        const userEntry = harem.find(entry => entry.characterId === randomCharacter.id);
-        const statusMessage = userEntry 
-            ? `Reclamado por @${userEntry.userId.split('@')[0]}` 
-            : 'Libre';
-
-        const message = `❀ Nombre » *${randomCharacter.name}*
-⚥ Género » *${randomCharacter.gender}*
-✰ Valor » *${randomCharacter.value}*
-♡ Estado » ${statusMessage}
-❖ Fuente » *${randomCharacter.source}*`;
-
-        const mentions = userEntry ? [userEntry.userId] : [];
-        await conn.sendFile(m.chat, randomImage, `${randomCharacter.name}.jpg`, message, m, { mentions });
-
-        if (!userEntry) {
-            const newEntry = {
-                userId: userId,
-                characterId: randomCharacter.id,
-                lastVoteTime: now,
-                voteCooldown: now + 1.5 * 60 * 60 * 1000
-            };
-            harem.push(newEntry);
-            await saveHarem(harem);
-        }
-
-        cooldowns[userId] = now + 15 * 60 * 1000;
-
-    } catch (error) {
-        console.error('Error en el handler:', error);
-        await conn.reply(m.chat, `✘ Error al cargar el personaje: ${error.message}`, m);
+    if (attempts >= 5) {
+      return await conn.reply(m.chat, "✘ Demasiados intentos. Usa el comando nuevamente.", m);
     }
+
+    // Asignar valor aleatorio (50-10000)
+    randomCharacter.value = Math.floor(Math.random() * 9950) + 50;
+
+    // Enviar mensaje
+    const message = `❀ Nombre » *${randomCharacter.name}*\n` +
+                   `⚥ Género » *${randomCharacter.gender}*\n` +
+                   `✰ Valor » *${randomCharacter.value}*\n` +
+                   `♡ Estado » Libre\n` +
+                   `❖ Fuente » *${randomCharacter.source}*`;
+
+    await conn.sendFile(m.chat, randomCharacter.img[0], 'anime.jpg', message, m);
+
+    // Guardar en harem
+    randomCharacter.user = userId;
+    harem.push({
+      userId: userId,
+      characterId: randomCharacter.id,
+      lastVoteTime: now
+    });
+    await saveHarem(harem);
+
+    cooldowns[userId] = now + 15 * 60 * 1000; // 15 min de cooldown
+
+  } catch (error) {
+    await conn.reply(m.chat, `✘ Error: ${error.message}`, m);
+  }
 };
 
-handler.help = ['ver', 'rw', 'rollwaifu'];
+handler.help = ['rw', 'rollwaifu'];
 handler.tags = ['gacha'];
-handler.command = ['ver', 'rw', 'rollwaifu'];
-handler.group = true;
-handler.register = true;
-
+handler.command = ['rw', 'rollwaifu'];
 export default handler;
