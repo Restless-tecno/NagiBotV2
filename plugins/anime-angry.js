@@ -38,9 +38,8 @@ let handler = async (m, { conn, usedPrefix }) => {
         let pp8 = 'https://files.catbox.moe/wth6so.mp4';
         let pp9 = 'https://files.catbox.moe/tsd4ey.mp4';
         let pp10 = 'https://files.catbox.moe/3a5clp.mp4';
-        let pp11 = 'https://files.catbox.moe/05lkkw.jpg';
         
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10, pp11];
+        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10];
         const video = videos[Math.floor(Math.random() * videos.length)];
      
         let mentions = [who]; 
