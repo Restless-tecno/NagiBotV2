@@ -346,7 +346,7 @@
         "value": "100",
         "source": "Roshidere",
         "img": [
-            "https://files.catbox.moe/6vw81z.jpg",
+            "https://files.catbox.moe/6vw81z.jpg"
         ],
         "vid": [
             "https://files.catbox.moe/video1_alisa.mp4",
@@ -783,7 +783,7 @@
         "img": [
             "https://qu.ax/iQrlL.jpg",
             "https://qu.ax/snsgd.jpg",
-            " https://qu.ax/GNzHF.jpg "
+            "https://qu.ax/GNzHF.jpg"
         ],
         "vid": [
             "https://files.catbox.moe/video1_light.mp4",
@@ -853,7 +853,7 @@
     {
         "id": "50",
         "name": "Michael Kaiser",
-        "gender": "Masculino",
+        "gender": "Hombre",
         "value": "100",
         "source": "Blue Lock",
         "img": [
@@ -1883,7 +1883,7 @@
         "img": [
             "Enlace 1",
             "Enlace hot",
-            " Enlace 2"
+            "Enlace 2"
         ],
         "vid": [
             "https://files.catbox.moe/video1_light.mp4",
@@ -1896,7 +1896,7 @@
     {
         "id": "105",
         "name": "Tomoe",
-        "gender": "genero",
+        "gender": "Hombre",
         "value": "100",
         "source": "Kamisama Hajimemashita",
         "img": [
