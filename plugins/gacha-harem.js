@@ -18,19 +18,21 @@ let handler = async (m, { conn, args }) => {
         const harem = await loadHarem();
         let userId = m.sender;
 
-        // Manejo de menciones y mensajes citados
         if (args[0]?.startsWith('@')) {
             userId = args[0].replace('@', '') + '@s.whatsapp.net';
         } else if (m.quoted?.sender) {
             userId = m.quoted.sender;
         }
 
-        // Filtramos y mapeamos solo los nombres
-        const characterNames = harem
-            .filter(entry => entry?.userId === userId)
-            .map(claim => claim.name || 'Desconocido');
+        // Filtrado más estricto
+        const validCharacters = harem.filter(entry => {
+            return entry?.userId === userId && 
+                   entry?.name && 
+                   entry.name !== 'Desconocido' &&
+                   entry.name.trim() !== '';
+        });
 
-        if (characterNames.length === 0) {
+        if (validCharacters.length === 0) {
             return await conn.reply(
                 m.chat, 
                 '❀ No tienes personajes reclamados en tu harem.', 
@@ -38,22 +40,33 @@ let handler = async (m, { conn, args }) => {
             );
         }
 
-        // Configuración de paginación
+        // Eliminar duplicados por nombre
+        const uniqueCharacters = [];
+        const namesSeen = new Set();
+        
+        validCharacters.forEach(character => {
+            if (!namesSeen.has(character.name)) {
+                namesSeen.add(character.name);
+                uniqueCharacters.push(character);
+            }
+        });
+
+        // Paginación
         const page = Math.max(1, parseInt(args[1]) || 1);
-        const perPage = 15; // 15 nombres por página
-        const totalPages = Math.ceil(characterNames.length / perPage);
+        const perPage = 15;
+        const totalPages = Math.ceil(uniqueCharacters.length / perPage);
         const currentPage = Math.min(page, totalPages);
         
         const startIdx = (currentPage - 1) * perPage;
-        const endIdx = Math.min(startIdx + perPage, characterNames.length);
-        const pageNames = characterNames.slice(startIdx, endIdx);
+        const endIdx = Math.min(startIdx + perPage, uniqueCharacters.length);
+        const pageCharacters = uniqueCharacters.slice(startIdx, endIdx);
 
-        // Construcción del mensaje simplificado
+        // Mensaje mejorado
         let message = `✧ *PERSONAJES RECLAMADOS* ✧\n`;
         message += `⌦ Usuario: @${userId.split('@')[0]}\n`;
-        message += `♡ Total: *${characterNames.length} personajes*\n\n`;
+        message += `♡ Total: *${uniqueCharacters.length} personaje${uniqueCharacters.length !== 1 ? 's' : ''}*\n\n`;
         
-        message += pageNames.map(name => `❀ ${name}`).join('\n');
+        message += pageCharacters.map(char => `❀ ${char.name}`).join('\n');
         
         message += `\n\n⌦ Página *${currentPage}* de *${totalPages}*`;
         message += `\n✧ Usa *${handler.command[0]} @usuario [página]* para ver más`;
