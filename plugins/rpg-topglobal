@@ -1,0 +1,67 @@
+import fetch from 'node-fetch';
+
+let handler = async (m, { conn, usedPrefix }) => {
+    // Obtener todos los usuarios de la base de datos
+    let users = global.db.data.users;
+    
+    // Filtrar usuarios válidos y convertirlos a array
+    let usersArray = Object.keys(users)
+        .filter(key => users[key].bank !== undefined)
+        .map(key => {
+            return {
+                jid: key,
+                name: conn.getName(key),
+                bank: users[key].bank || 0,
+                coin: users[key].coin || 0,
+                level: users[key].level || 0,
+                role: users[key].role || 'Sin rol'
+            };
+        });
+    
+    // Ordenar por dinero en el banco (de mayor a menor)
+    usersArray.sort((a, b) => b.bank - a.bank);
+    
+    // Configurar paginación
+    const page = parseInt(m.text.split(' ')[1]) || 1;
+    const perPage = 10;
+    const totalPages = Math.ceil(usersArray.length / perPage);
+    const currentPage = Math.min(page, totalPages);
+    const startIdx = (currentPage - 1) * perPage;
+    const endIdx = Math.min(startIdx + perPage, usersArray.length);
+    
+    // Construir mensaje
+    let message = `✧ *TOP USUARIOS CON MÁS DINERO EN EL BANCO* ✧\n\n`;
+    
+    // Agregar usuarios de la página actual
+    for (let i = startIdx; i < endIdx; i++) {
+        const user = usersArray[i];
+        message += `🏆 *${i + 1}.* ${user.name}\n`;
+        message += `   💰 Banco: ${user.bank.toLocaleString()} ${moneda}\n`;
+        message += `   🪙 Cartera: ${user.coin.toLocaleString()} ${moneda}\n`;
+        message += `   🎚️ Nivel: ${user.level}\n`;
+        message += `   👑 Rol: ${user.role}\n\n`;
+    }
+    
+    message += `⌦ Página *${currentPage}* de *${totalPages}*\n`;
+    message += `✧ Usa *${usedPrefix}topmoney [página]* para navegar`;
+    
+    // Enviar mensaje con menciones
+    const mentions = usersArray
+        .slice(startIdx, endIdx)
+        .map(user => user.jid);
+    
+    await conn.reply(
+        m.chat,
+        message,
+        m,
+        { mentions }
+    );
+};
+
+handler.help = ['topmoney [página]'];
+handler.tags = ['economy', 'ranking'];
+handler.command = ['topmoney', 'topbanco', 'toprich'];
+handler.register = true;
+handler.group = true;
+
+export default handler;
