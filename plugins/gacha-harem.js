@@ -25,8 +25,23 @@ let handler = async (m, { conn, args }) => {
             userId = m.sender;
         }
 
-        // Filtrar personajes del usuario
-        const userClaims = harem.filter(entry => entry.userId === userId);
+        // Filtrar personajes del usuario y asegurar datos válidos
+        const userClaims = harem.filter(entry => {
+            return entry.userId === userId && 
+                   entry.name && 
+                   entry.value !== undefined && 
+                   entry.gender && 
+                   entry.source;
+        }).map(claim => {
+            // Asegurar que el valor sea número
+            const numericValue = typeof claim.value === 'number' ? claim.value : 
+                               parseInt(claim.value) || 0;
+            return {
+                ...claim,
+                value: numericValue,
+                claimDate: claim.claimDate || Date.now() // Valor por defecto para fecha
+            };
+        });
 
         if (userClaims.length === 0) {
             await conn.reply(m.chat, '❀ No tienes personajes reclamados en tu harem.', m);
@@ -35,7 +50,7 @@ let handler = async (m, { conn, args }) => {
 
         // Configuración de paginación
         const page = parseInt(args[1]) || 1;
-        const charactersPerPage = 10; // Reducido para mejor visualización
+        const charactersPerPage = 10;
         const totalCharacters = userClaims.length;
         const totalPages = Math.ceil(totalCharacters / charactersPerPage);
         const startIndex = (page - 1) * charactersPerPage;
@@ -57,7 +72,7 @@ let handler = async (m, { conn, args }) => {
             message += `❀ *${claim.name}*\n`;
             message += `⚥ ${claim.gender} | ✰ ${claim.value.toLocaleString()}\n`;
             message += `❖ ${claim.source}\n`;
-            message += `⏱️ ${new Date(claim.claimDate).toLocaleDateString()}\n\n`;
+            message += `⏱️ ${new Date(claim.claimDate).toLocaleDateString('es-ES')}\n\n`;
         }
 
         message += `⌦ Página *${page}* de *${totalPages}*\n`;
@@ -67,7 +82,7 @@ let handler = async (m, { conn, args }) => {
 
     } catch (error) {
         console.error('Error en comando harem:', error);
-        await conn.reply(m.chat, `✘ Error al cargar el harem: ${error.message}`, m);
+        await conn.reply(m.chat, `✘ Error al cargar el harem: ${error.stack || error.message}`, m);
     }
 };
 
