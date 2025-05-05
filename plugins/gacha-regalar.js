@@ -1,64 +1,71 @@
 import { promises as fs } from 'fs';
 
-const DB_PATH = './src/database/harem.json';
+const haremFilePath = './src/database/harem.json';
 
 async function loadHarem() {
     try {
-        const data = await fs.readFile(DB_PATH, 'utf-8');
-        return JSON.parse(data) || [];
-    } catch {
+        const data = await fs.readFile(haremFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
         return [];
     }
 }
 
-async function saveHarem(data) {
-    await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
+async function saveHarem(harem) {
+    try {
+        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2), 'utf-8');
+    } catch (error) {
+        throw new Error('❀ No se pudo guardar el archivo harem.json.');
+    }
 }
 
 let handler = async (m, { conn, args }) => {
-    const sender = m.sender;
-    const username = conn.getName(sender);
+    const userId = m.sender;
 
-    if (!args[0] || !args[1]?.startsWith('@')) {
-        return conn.reply(m.chat, `✘ Uso: #regalar <nombre_personaje> @usuario\nEjemplo: #regalar naruto @amigo`, m);
+    if (args.length < 2) {
+        await conn.reply(m.chat, '《✧》Debes especificar el nombre del personaje y mencionar a quien quieras regalarlo.', m);
+        return;
+    }
+
+    const characterName = args.slice(0, -1).join(' ').toLowerCase().trim();
+    const mentionedUser = args[args.length - 1];
+
+    if (!mentionedUser.startsWith('@')) {
+        await conn.reply(m.chat, '《✧》Debes mencionar a un usuario válido.', m);
+        return;
     }
 
     try {
         const harem = await loadHarem();
-        const characterName = args.slice(0, -1).join(' ').toLowerCase();
-        const recipient = args[args.length - 1].replace('@', '') + '@s.whatsapp.net';
-
-        // Buscar personaje
-        const charIndex = harem.findIndex(c => 
+        const characterIndex = harem.findIndex(c => 
             c.name.toLowerCase() === characterName && 
-            c.userId === sender
+            c.userId === userId
         );
 
-        if (charIndex === -1) {
-            return conn.reply(m.chat, `❌ No tienes un personaje llamado "${args.slice(0, -1).join(' ')}"`, m);
+        if (characterIndex === -1) {
+            await conn.reply(m.chat, `《✧》*${characterName}* no está reclamado por ti.`, m);
+            return;
         }
 
-        // Transferir
-        harem[charIndex].userId = recipient;
-        harem[charIndex].username = conn.getName(recipient);
-        harem[charIndex].transferredAt = Date.now();
-
+        const newOwner = mentionedUser.replace('@', '') + '@s.whatsapp.net';
+        harem[characterIndex].userId = newOwner;
         await saveHarem(harem);
 
         await conn.reply(
-            m.chat,
-            `🎁 *${username}* ha regalado a *${harem[charIndex].name}* a @${recipient.split('@')[0]}!\n` +
-            `💎 Valor: ${harem[charIndex].value} | 📺 Fuente: ${harem[charIndex].source}`,
-            m,
-            { mentions: [sender, recipient] }
+            m.chat, 
+            `✰ *${harem[characterIndex].name}* ha sido regalado a ${mentionedUser}!`, 
+            m, 
+            { mentions: [newOwner] }
         );
-
     } catch (error) {
-        conn.reply(m.chat, `❌ Error al regalar: ${error.message}`, m);
+        await conn.reply(m.chat, `✘ Error al regalar el personaje: ${error.message}`, m);
     }
 };
 
-handler.help = ['regalar <nombre> @usuario'];
-handler.tags = ['gacha'];
-handler.command = ['regalar', 'give'];
+handler.help = ['regalar <nombre del personaje> @usuario'];
+handler.tags = ['anime'];
+handler.command = ['regalar', 'givewaifu', 'givechar'];
+handler.group = true;
+handler.register = true;
+
 export default handler;
