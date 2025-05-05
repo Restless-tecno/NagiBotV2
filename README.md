@@ -58,10 +58,7 @@ cd NagiBotV2
 ```
 
 ```bash
-yarn install && npm install
-```
-```bash
-npm install axios fs
+yarn install && npm install && npm install axios fs
 ```
 
 ```bash
