@@ -5,84 +5,102 @@ const haremFilePath = './src/database/harem.json';
 async function loadHarem() {
     try {
         const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
+        const parsedData = JSON.parse(data);
+        
+        // Validación extrema de la estructura del archivo
+        if (!Array.isArray(parsedData)) {
+            console.warn('harem.json no es un array, inicializando nuevo array');
+            return [];
+        }
+        return parsedData;
     } catch (error) {
+        console.error('Error cargando harem.json:', error);
         return [];
     }
 }
 
 let handler = async (m, { conn, args }) => {
     try {
-        const harem = await loadHarem();
-        let userId;
-
-        // Determinar el usuario objetivo
-        if (m.quoted && m.quoted.sender) {
-            userId = m.quoted.sender;
-        } else if (args[0] && args[0].startsWith('@')) {
-            userId = args[0].replace('@', '') + '@s.whatsapp.net';
-        } else {
-            userId = m.sender;
+        let harem = await loadHarem();
+        
+        // Validación adicional por si acaso
+        if (!Array.isArray(harem)) {
+            console.error('harem no es array, forzando reinicio');
+            harem = [];
         }
 
-        // Filtrar personajes del usuario y asegurar datos válidos
-        const userClaims = harem.filter(entry => {
-            return entry.userId === userId && 
-                   entry.name && 
-                   entry.value !== undefined && 
-                   entry.gender && 
-                   entry.source;
-        }).map(claim => {
-            // Asegurar que el valor sea número
-            const numericValue = typeof claim.value === 'number' ? claim.value : 
-                               parseInt(claim.value) || 0;
-            return {
-                ...claim,
-                value: numericValue,
-                claimDate: claim.claimDate || Date.now() // Valor por defecto para fecha
-            };
-        });
+        let userId = m.sender;
+        
+        // Manejo robusto de mencionados y citados
+        if (args[0]?.startsWith('@')) {
+            userId = args[0].replace('@', '') + '@s.whatsapp.net';
+        } else if (m.quoted?.sender) {
+            userId = m.quoted.sender;
+        }
+
+        // Procesamiento ultra-seguro de los claims
+        const userClaims = harem
+            .filter(entry => entry?.userId === userId)
+            .map(claim => {
+                // Garantizar que todos los campos existan
+                return {
+                    userId: claim.userId,
+                    name: claim.name || 'Desconocido',
+                    gender: claim.gender || 'Desconocido',
+                    value: typeof claim.value === 'number' ? claim.value : 
+                          parseInt(claim.value) || 0,
+                    source: claim.source || 'Fuente desconocida',
+                    claimDate: claim.claimDate || Date.now()
+                };
+            });
 
         if (userClaims.length === 0) {
-            await conn.reply(m.chat, '❀ No tienes personajes reclamados en tu harem.', m);
-            return;
+            return await conn.reply(
+                m.chat, 
+                '❀ No tienes personajes reclamados en tu harem.', 
+                m
+            );
         }
 
-        // Configuración de paginación
-        const page = parseInt(args[1]) || 1;
-        const charactersPerPage = 10;
-        const totalCharacters = userClaims.length;
-        const totalPages = Math.ceil(totalCharacters / charactersPerPage);
-        const startIndex = (page - 1) * charactersPerPage;
-        const endIndex = Math.min(startIndex + charactersPerPage, totalCharacters);
+        // Paginación a prueba de errores
+        const page = Math.max(1, parseInt(args[1]) || 1);
+        const charsPerPage = 10;
+        const totalPages = Math.ceil(userClaims.length / charsPerPage);
+        const currentPage = Math.min(page, totalPages);
+        
+        const startIdx = (currentPage - 1) * charsPerPage;
+        const endIdx = Math.min(startIdx + charsPerPage, userClaims.length);
+        const pageClaims = userClaims.slice(startIdx, endIdx);
 
-        if (page < 1 || page > totalPages) {
-            await conn.reply(m.chat, `❀ Página no válida. Hay un total de *${totalPages}* páginas.`, m);
-            return;
-        }
-
-        // Construir el mensaje
+        // Construcción del mensaje con validaciones
         let message = `✧ *HAREM PERSONAL* ✧\n`;
         message += `⌦ Usuario: @${userId.split('@')[0]}\n`;
-        message += `♡ Total: *${totalCharacters} personajes*\n\n`;
+        message += `♡ Total: *${userClaims.length} personajes*\n\n`;
 
-        // Agregar personajes de la página actual
-        for (let i = startIndex; i < endIndex; i++) {
-            const claim = userClaims[i];
+        pageClaims.forEach(claim => {
             message += `❀ *${claim.name}*\n`;
             message += `⚥ ${claim.gender} | ✰ ${claim.value.toLocaleString()}\n`;
             message += `❖ ${claim.source}\n`;
             message += `⏱️ ${new Date(claim.claimDate).toLocaleDateString('es-ES')}\n\n`;
-        }
+        });
 
-        message += `⌦ Página *${page}* de *${totalPages}*\n`;
+        message += `⌦ Página *${currentPage}* de *${totalPages}*\n`;
         message += `✧ Usa *${handler.command[0]} @usuario [página]* para ver otros harem`;
 
-        await conn.reply(m.chat, message, m, { mentions: [userId] });
+        await conn.reply(
+            m.chat, 
+            message, 
+            m, 
+            { mentions: [userId] }
+        );
 
     } catch (error) {
-        console.error('Error en comando harem:', error);
-        await conn.reply(m.chat, `✘ Error al cargar el harem: ${error.stack || error.message}`, m);
+        console.error('ERROR CRÍTICO en comando harem:', error);
+        await conn.reply(
+            m.chat, 
+            '✘ Error crítico al cargar el harem. Por favor reporta este error.', 
+            m
+        );
     }
 };
 
