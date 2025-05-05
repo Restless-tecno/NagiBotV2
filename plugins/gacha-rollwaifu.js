@@ -1,79 +1,3 @@
-import axios from 'axios';
-import { promises as fs } from 'fs';
-
-const haremFilePath = './src/database/harem.json';
-const tempClaimPath = './src/database/tempClaim.json';
-const cooldowns = {};
-
-const ANILIST_API = 'https://graphql.anilist.co';
-const IMAGE_API = 'https://api.waifu.im/search';
-
-async function loadHarem() {
-    try {
-        await fs.access(haremFilePath);
-        const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return [];
-    }
-}
-
-async function loadTempClaim() {
-    try {
-        await fs.access(tempClaimPath);
-        const data = await fs.readFile(tempClaimPath, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return {};
-    }
-}
-
-async function saveTempClaim(tempClaim) {
-    await fs.writeFile(tempClaimPath, JSON.stringify(tempClaim, null, 2));
-}
-
-async function fetchRandomAnimeCharacter() {
-    try {
-        const randomPage = Math.floor(Math.random() * 500);
-        const response = await axios.post(ANILIST_API, {
-            query: `query {
-                Page(page: ${randomPage}, perPage: 1) {
-                    characters(sort: FAVOURITES_DESC) {
-                        id
-                        name { full }
-                        gender
-                        media { nodes { title { romaji } } }
-                        image { large }
-                    }
-                }
-            }`
-        });
-
-        const character = response.data?.data?.Page?.characters?.[0];
-        if (!character) throw new Error("No se encontró personaje");
-
-        let imageUrl = character.image.large;
-        try {
-            const imgResponse = await axios.get(IMAGE_API, {
-                params: { included_tags: character.name.full }
-            });
-            imageUrl = imgResponse.data.images?.[0]?.url || imageUrl;
-        } catch {}
-
-        return {
-            id: character.id.toString(),
-            name: character.name.full,
-            gender: character.gender === 'Male' ? 'Hombre' : 'Mujer',
-            source: character.media.nodes[0]?.title.romaji || 'Desconocido',
-            img: imageUrl,
-            value: Math.floor(Math.random() * 9950) + 50
-        };
-    } catch (error) {
-        console.error("Error al obtener personaje:", error);
-        throw new Error("Error en la API. Intenta de nuevo.");
-    }
-}
-
 let handler = async (m, { conn }) => {
     const userId = m.sender;
     const now = Date.now();
@@ -109,12 +33,18 @@ let handler = async (m, { conn }) => {
                        `📺 *Fuente:* ${character.source}\n\n` +
                        `⚠️ *Responde con* *#claim* *para reclamarlo.*`;
 
+        // Guardar TODOS los campos necesarios
         tempClaim[userId] = {
-            ...character,
+            id: character.id,
+            name: character.name,
+            gender: character.gender,
+            img: character.img,
+            value: character.value,
+            source: character.source,
             expires: now + 120000
         };
+        
         await saveTempClaim(tempClaim);
-
         await conn.sendFile(m.chat, character.img, 'anime.jpg', message, m);
         cooldowns[userId] = now + 15 * 60 * 1000;
 
@@ -123,8 +53,3 @@ let handler = async (m, { conn }) => {
         conn.reply(m.chat, `❌ Error: ${error.message}`, m);
     }
 };
-
-handler.help = ['rw', 'rollwaifu'];
-handler.tags = ['gacha'];
-handler.command = ['rw', 'rollwaifu'];
-export default handler;
