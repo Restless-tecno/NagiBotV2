@@ -1,89 +1,64 @@
 import { promises as fs } from 'fs';
 
-const charactersFilePath = './src/database/characters.json';
-const haremFilePath = './src/database/harem.json';
-
-async function loadCharacters() {
-    try {
-        const data = await fs.readFile(charactersFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        throw new Error('No se pudo cargar el archivo characters.json.');
-    }
-}
-
-async function saveCharacters(characters) {
-    try {
-        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2), 'utf-8');
-    } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo characters.json.');
-    }
-}
+const DB_PATH = './src/database/harem.json';
 
 async function loadHarem() {
     try {
-        const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
+        const data = await fs.readFile(DB_PATH, 'utf-8');
+        return JSON.parse(data) || [];
+    } catch {
         return [];
     }
 }
 
-async function saveHarem(harem) {
-    try {
-        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
-    } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo harem.json.');
-    }
+async function saveHarem(data) {
+    await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
 }
 
 let handler = async (m, { conn, args }) => {
-    const userId = m.sender;
+    const sender = m.sender;
+    const username = conn.getName(sender);
 
-    if (args.length < 2) {
-        await conn.reply(m.chat, '《✧》Debes especificar el nombre del personaje y mencionar a quien quieras regalarlo.', m);
-        return;
-    }
-
-    const characterName = args.slice(0, -1).join(' ').toLowerCase().trim();
-    const mentionedUser = args[args.length - 1];
-
-    if (!mentionedUser.startsWith('@')) {
-        await conn.reply(m.chat, '《✧》Debes mencionar a un usuario válido.', m);
-        return;
+    if (!args[0] || !args[1]?.startsWith('@')) {
+        return conn.reply(m.chat, `✘ Uso: #regalar <nombre_personaje> @usuario\nEjemplo: #regalar naruto @amigo`, m);
     }
 
     try {
-        const characters = await loadCharacters();
-        const character = characters.find(c => c.name.toLowerCase() === characterName && c.user === userId);
+        const harem = await loadHarem();
+        const characterName = args.slice(0, -1).join(' ').toLowerCase();
+        const recipient = args[args.length - 1].replace('@', '') + '@s.whatsapp.net';
 
-        if (!character) {
-            await conn.reply(m.chat, `《✧》*${characterName}* no está reclamado por ti.`, m);
-            return;
+        // Buscar personaje
+        const charIndex = harem.findIndex(c => 
+            c.name.toLowerCase() === characterName && 
+            c.userId === sender
+        );
+
+        if (charIndex === -1) {
+            return conn.reply(m.chat, `❌ No tienes un personaje llamado "${args.slice(0, -1).join(' ')}"`, m);
         }
 
-        character.user = mentionedUser.replace('@', '');
-        await saveCharacters(characters);
+        // Transferir
+        harem[charIndex].userId = recipient;
+        harem[charIndex].username = conn.getName(recipient);
+        harem[charIndex].transferredAt = Date.now();
 
-        const harem = await loadHarem();
-        const userEntry = {
-            userId: mentionedUser.replace('@', ''),
-            characterId: character.id,
-            lastClaimTime: Date.now()
-        };
-        harem.push(userEntry);
         await saveHarem(harem);
 
-        await conn.reply(m.chat, `✰ *${character.name}* ha sido regalado a ${mentionedUser}!`, m);
+        await conn.reply(
+            m.chat,
+            `🎁 *${username}* ha regalado a *${harem[charIndex].name}* a @${recipient.split('@')[0]}!\n` +
+            `💎 Valor: ${harem[charIndex].value} | 📺 Fuente: ${harem[charIndex].source}`,
+            m,
+            { mentions: [sender, recipient] }
+        );
+
     } catch (error) {
-        await conn.reply(m.chat, `✘ Error al regalar el personaje: ${error.message}`, m);
+        conn.reply(m.chat, `❌ Error al regalar: ${error.message}`, m);
     }
 };
 
-handler.help = ['regalar <nombre del personaje> @usuario'];
-handler.tags = ['anime'];
-handler.command = ['regalar', 'givewaifu', 'givechar'];
-handler.group = true;
-handler.register = true;
-
+handler.help = ['regalar <nombre> @usuario'];
+handler.tags = ['gacha'];
+handler.command = ['regalar', 'give'];
 export default handler;
