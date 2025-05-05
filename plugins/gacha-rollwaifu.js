@@ -7,7 +7,7 @@ const cooldowns = {};
 // Configuración de la API de AniList
 const ANILIST_API = 'https://graphql.anilist.co';
 
-// Consulta GraphQL para obtener personajes aleatorios
+// Consulta GraphQL optimizada
 const GET_RANDOM_CHARACTER = `
   query ($page: Int, $perPage: Int) {
     Page(page: $page, perPage: $perPage) {
@@ -29,7 +29,6 @@ const GET_RANDOM_CHARACTER = `
         image {
           large
         }
-        favourites
       }
     }
   }
@@ -37,7 +36,7 @@ const GET_RANDOM_CHARACTER = `
 
 async function fetchRandomCharacter() {
   try {
-    const page = Math.floor(Math.random() * 50) + 1; // Páginas aleatorias para variedad
+    const page = Math.floor(Math.random() * 50) + 1;
     const response = await axios.post(ANILIST_API, {
       query: GET_RANDOM_CHARACTER,
       variables: { page, perPage: 1 }
@@ -46,37 +45,36 @@ async function fetchRandomCharacter() {
     const character = response.data.data.Page.characters[0];
     if (!character) throw new Error('No se encontró personaje');
 
-    // Determinar el género (la API puede devolver null)
+    // Determinar el género
     let gender = 'Desconocido';
     if (character.gender) {
       gender = character.gender === 'Male' ? 'Hombre' : 
                character.gender === 'Female' ? 'Mujer' : 'Desconocido';
     }
 
-    // Obtener la fuente (primer anime/manga asociado)
+    // Obtener la fuente
     let source = 'Origen desconocido';
-    if (character.media && character.media.nodes && character.media.nodes[0]) {
+    if (character.media?.nodes?.[0]) {
       source = character.media.nodes[0].title.english || 
                character.media.nodes[0].title.romaji || 
                character.media.nodes[0].title.native;
     }
 
-    // Calcular valor basado en favoritos (1-100000)
-    const value = Math.min(Math.floor((character.favourites || 1) * 10), 100000);
+    // Valor completamente aleatorio entre 1 y 100000
+    const value = Math.floor(Math.random() * 100000) + 1;
 
     return {
       id: character.id,
       name: character.name.full,
       gender,
-      value,
+      value, // Valor aleatorio
       source,
       img: [character.image.large]
     };
   } catch (error) {
     console.error('Error al obtener personaje:', error);
-    // Personaje de respaldo en caso de error
     return {
-      id: 'default',
+      id: 'default-' + Date.now(),
       name: 'Personaje Desconocido',
       gender: 'Desconocido',
       value: Math.floor(Math.random() * 100000) + 1,
@@ -116,7 +114,7 @@ let handler = async (m, { conn }) => {
 
   try {
     const randomCharacter = await fetchRandomCharacter();
-    const randomImage = randomCharacter.img[0]; // AniList solo devuelve una imagen
+    const randomImage = randomCharacter.img[0];
 
     const harem = await loadHarem();
     const userEntry = harem.find(entry => entry.characterId === randomCharacter.id);
@@ -127,7 +125,7 @@ let handler = async (m, { conn }) => {
 
     const message = `❀ Nombre » *${randomCharacter.name}*
 ⚥ Género » *${randomCharacter.gender}*
-✰ Valor » *${randomCharacter.value}*
+✰ Valor » *${randomCharacter.value.toLocaleString()}*
 ♡ Estado » ${statusMessage}
 ❖ Fuente » *${randomCharacter.source}*`;
 
@@ -140,7 +138,12 @@ let handler = async (m, { conn }) => {
         characterId: randomCharacter.id,
         lastVoteTime: now,
         voteCooldown: now + 1.5 * 60 * 60 * 1000,
-        characterData: randomCharacter // Guardamos todos los datos por si acaso
+        characterData: {
+          name: randomCharacter.name,
+          gender: randomCharacter.gender,
+          value: randomCharacter.value,
+          source: randomCharacter.source
+        }
       };
       harem.push(newEntry);
       await saveHarem(harem);
