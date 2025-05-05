@@ -1,6 +1,24 @@
 import { promises as fs } from 'fs';
 
+const charactersFilePath = './src/database/characters.json';
 const haremFilePath = './src/database/harem.json';
+
+async function loadCharacters() {
+    try {
+        const data = await fs.readFile(charactersFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        throw new Error('No se pudo cargar el archivo characters.json.');
+    }
+}
+
+async function saveCharacters(characters) {
+    try {
+        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2), 'utf-8');
+    } catch (error) {
+        throw new Error('❀ No se pudo guardar el archivo characters.json.');
+    }
+}
 
 async function loadHarem() {
     try {
@@ -13,7 +31,7 @@ async function loadHarem() {
 
 async function saveHarem(harem) {
     try {
-        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2), 'utf-8');
+        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
     } catch (error) {
         throw new Error('❀ No se pudo guardar el archivo harem.json.');
     }
@@ -36,27 +54,27 @@ let handler = async (m, { conn, args }) => {
     }
 
     try {
-        const harem = await loadHarem();
-        const characterIndex = harem.findIndex(c => 
-            c.name.toLowerCase() === characterName && 
-            c.userId === userId
-        );
+        const characters = await loadCharacters();
+        const character = characters.find(c => c.name.toLowerCase() === characterName && c.user === userId);
 
-        if (characterIndex === -1) {
+        if (!character) {
             await conn.reply(m.chat, `《✧》*${characterName}* no está reclamado por ti.`, m);
             return;
         }
 
-        const newOwner = mentionedUser.replace('@', '') + '@s.whatsapp.net';
-        harem[characterIndex].userId = newOwner;
+        character.user = mentionedUser.replace('@', '');
+        await saveCharacters(characters);
+
+        const harem = await loadHarem();
+        const userEntry = {
+            userId: mentionedUser.replace('@', ''),
+            characterId: character.id,
+            lastClaimTime: Date.now()
+        };
+        harem.push(userEntry);
         await saveHarem(harem);
 
-        await conn.reply(
-            m.chat, 
-            `✰ *${harem[characterIndex].name}* ha sido regalado a ${mentionedUser}!`, 
-            m, 
-            { mentions: [newOwner] }
-        );
+        await conn.reply(m.chat, `✰ *${character.name}* ha sido regalado a ${mentionedUser}!`, m);
     } catch (error) {
         await conn.reply(m.chat, `✘ Error al regalar el personaje: ${error.message}`, m);
     }
