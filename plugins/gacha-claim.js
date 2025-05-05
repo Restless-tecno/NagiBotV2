@@ -1,36 +1,3 @@
-import { promises as fs } from 'fs';
-
-const haremFilePath = './src/database/harem.json';
-const tempClaimPath = './src/database/tempClaim.json';
-
-async function loadHarem() {
-    try {
-        await fs.access(haremFilePath);
-        const data = await fs.readFile(haremFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return [];
-    }
-}
-
-async function saveHarem(harem) {
-    await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
-}
-
-async function loadTempClaim() {
-    try {
-        await fs.access(tempClaimPath);
-        const data = await fs.readFile(tempClaimPath, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return {};
-    }
-}
-
-async function saveTempClaim(tempClaim) {
-    await fs.writeFile(tempClaimPath, JSON.stringify(tempClaim, null, 2));
-}
-
 let handler = async (m, { conn }) => {
     const userId = m.sender;
     const now = Date.now();
@@ -40,7 +7,8 @@ let handler = async (m, { conn }) => {
         const [harem, tempClaim] = await Promise.all([loadHarem(), loadTempClaim()]);
         const character = tempClaim[userId];
 
-        if (!character) {
+        // Verificación más completa
+        if (!character || !character.id) {
             return conn.reply(m.chat, "❌ No hay personajes pendientes. Usa #rw primero.", m);
         }
 
@@ -56,7 +24,8 @@ let handler = async (m, { conn }) => {
             return conn.reply(m.chat, "⚠️ Este personaje ya fue reclamado.", m);
         }
 
-        harem.push({
+        // Asegurar todos los campos necesarios
+        const newCharacter = {
             userId: userId,
             characterId: character.id,
             name: character.name,
@@ -66,10 +35,15 @@ let handler = async (m, { conn }) => {
             source: character.source,
             claimedAt: now,
             lastClaimTime: now
-        });
+        };
 
+        harem.push(newCharacter);
         delete tempClaim[userId];
-        await Promise.all([saveHarem(harem), saveTempClaim(tempClaim)]);
+        
+        await Promise.all([
+            saveHarem(harem),
+            saveTempClaim(tempClaim)
+        ]);
 
         await conn.sendMessage(m.chat, {
             text: `🎉 *¡Personaje Reclamado por ${username}!*\n\n` +
@@ -86,8 +60,3 @@ let handler = async (m, { conn }) => {
         conn.reply(m.chat, `❌ Error al reclamar: ${error.message}`, m);
     }
 };
-
-handler.help = ['c', 'claim'];
-handler.tags = ['gacha'];
-handler.command = ['c', 'claim'];
-export default handler;
