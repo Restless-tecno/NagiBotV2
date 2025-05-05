@@ -1,78 +1,76 @@
 import axios from 'axios';
 import { promises as fs } from 'fs';
 
+// Archivos de base de datos
 const haremFilePath = './src/database/harem.json';
+const tempClaimPath = './src/database/tempClaim.json';
 const cooldowns = {};
 
-// 1. Configuración de APIs
+// Configuración de APIs
 const ANILIST_API = 'https://graphql.anilist.co';
-const IMAGE_API = 'https://api.waifu.im/search'; // Alternativa: 'https://danbooru.donmai.us/posts.json'
+const IMAGE_API = 'https://api.waifu.im/search';
 
-// 2. Función para cargar el harem
+// Función para cargar el harem
 async function loadHarem() {
     try {
         await fs.access(haremFilePath);
         const data = await fs.readFile(haremFilePath, 'utf-8');
         return JSON.parse(data);
-    } catch (error) {
-        // Si el archivo no existe, retornar array vacío
+    } catch {
         return [];
     }
 }
 
-// 3. Función para guardar el harem
+// Función para guardar el harem
 async function saveHarem(harem) {
+    await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
+}
+
+// Función para cargar claims temporales
+async function loadTempClaim() {
     try {
-        await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
-    } catch (error) {
-        console.error("Error al guardar harem:", error);
-        throw new Error("No se pudo guardar la información del harem");
+        await fs.access(tempClaimPath);
+        const data = await fs.readFile(tempClaimPath, 'utf-8');
+        return JSON.parse(data);
+    } catch {
+        return {};
     }
 }
 
-// 4. Consulta GraphQL optimizada para personajes aleatorios
-const getRandomCharacterQuery = (page) => `
-  query {
-    Page(page: ${page}, perPage: 1) {
-      characters(sort: FAVOURITES_DESC) {
-        id
-        name { full }
-        gender
-        media {
-          nodes {
-            title { romaji }
-          }
-        }
-        image { large }
-      }
-    }
-  }
-`;
+// Función para guardar claims temporales
+async function saveTempClaim(tempClaim) {
+    await fs.writeFile(tempClaimPath, JSON.stringify(tempClaim, null, 2));
+}
 
-// 5. Función principal para obtener personajes
+// Obtener personaje aleatorio de AniList + Waifu.im
 async function fetchRandomAnimeCharacter() {
     try {
-        const randomPage = Math.floor(Math.random() * 500); // Amplio rango para más variedad
+        const randomPage = Math.floor(Math.random() * 500);
         const response = await axios.post(ANILIST_API, {
-            query: getRandomCharacterQuery(randomPage)
+            query: `query {
+                Page(page: ${randomPage}, perPage: 1) {
+                    characters(sort: FAVOURITES_DESC) {
+                        id
+                        name { full }
+                        gender
+                        media { nodes { title { romaji } } }
+                        image { large }
+                    }
+                }
+            }`
         });
 
         const character = response.data?.data?.Page?.characters?.[0];
-        if (!character) throw new Error("Personaje no encontrado");
+        if (!character) throw new Error("No se encontró personaje");
 
-        // Obtener imagen (con fallbacks)
+        // Obtener imagen (con fallback a AniList)
         let imageUrl = character.image.large;
         try {
             const imgResponse = await axios.get(IMAGE_API, {
-                params: {
-                    included_tags: character.name.full,
-                    many: 'true'
-                }
+                params: { included_tags: character.name.full }
             });
             imageUrl = imgResponse.data.images?.[0]?.url || imageUrl;
-        } catch (imgError) {
-            console.log("Usando imagen de AniList como fallback");
-        }
+        } catch {}
 
         return {
             id: character.id.toString(),
@@ -80,81 +78,73 @@ async function fetchRandomAnimeCharacter() {
             gender: character.gender === 'Male' ? 'Hombre' : 'Mujer',
             source: character.media.nodes[0]?.title.romaji || 'Desconocido',
             img: [imageUrl],
-            user: null,
-            value: Math.floor(Math.random() * 9950) + 50 // Valor aleatorio aquí
+            value: Math.floor(Math.random() * 9950) + 50
         };
     } catch (error) {
-        console.error("Error en fetchRandomAnimeCharacter:", error);
-        throw new Error("Error al obtener personaje aleatorio");
+        console.error("Error al obtener personaje:", error);
+        throw new Error("Error en la API. Intenta de nuevo.");
     }
 }
 
-// 6. Handler principal
+// Handler principal
 let handler = async (m, { conn }) => {
     const userId = m.sender;
     const now = Date.now();
 
-    // Sistema de cooldown
+    // Cooldown de 15 minutos
     if (cooldowns[userId] && now < cooldowns[userId]) {
         const remaining = Math.ceil((cooldowns[userId] - now) / 1000);
         const mins = Math.floor(remaining / 60);
         const secs = remaining % 60;
-        return await conn.reply(m.chat, `⌛ Espera *${mins}m ${secs}s* para usar #rw de nuevo.`, m);
+        return conn.reply(m.chat, `⌛ Espera *${mins}m ${secs}s* para usar #rw de nuevo.`, m);
     }
 
     try {
-        const harem = await loadHarem();
+        const [harem, tempClaim] = await Promise.all([loadHarem(), loadTempClaim()]);
         let character;
         let attempts = 0;
 
-        // Buscar personaje no reclamado
+        // Buscar personaje no reclamado (máx. 5 intentos)
         while (attempts < 5) {
             character = await fetchRandomAnimeCharacter();
-            const isClaimed = harem.some(entry => entry.characterId === character.id);
+            const isClaimed = harem.some(entry => entry.characterId === character.id) || 
+                             Object.values(tempClaim).some(c => c.id === character.id);
             if (!isClaimed) break;
             attempts++;
         }
 
         if (attempts >= 5) {
-            return await conn.reply(m.chat, "🔍 Demasiados intentos. Intenta con #rw otra vez.", m);
+            return conn.reply(m.chat, "🔍 Demasiados intentos. Usa #rw otra vez.", m);
         }
 
-        // Construir mensaje
-        const message = `🌸 *${character.name}*\n` +
-                       `⚥ ${character.gender}\n` +
-                       `💎 Valor: ${character.value}\n` +
-                       `📺 Fuente: ${character.source}\n` +
-                       `🔓 Estado: Libre`;
+        // Mensaje para reclamar
+        const message = `🎌 *Personaje Disponible* 🎴\n\n` +
+                       `🌸 *Nombre:* ${character.name}\n` +
+                       `⚥ *Género:* ${character.gender}\n` +
+                       `💎 *Valor:* ${character.value}\n` +
+                       `📺 *Fuente:* ${character.source}\n\n` +
+                       `⚠️ *Responde con* *#claim* *para reclamarlo.*`;
 
-        // Enviar con mención
-        await conn.sendFile(
-            m.chat, 
-            character.img[0], 
-            'anime.jpg', 
-            message, 
-            m, 
-            { mentions: [userId] }
-        );
+        // Guardar en tempClaim (válido por 2 minutos)
+        tempClaim[userId] = {
+            id: character.id,
+            name: character.name,
+            img: character.img[0],
+            expires: now + 120000 // 2 minutos
+        };
+        await saveTempClaim(tempClaim);
 
-        // Actualizar harem
-        harem.push({
-            userId: userId,
-            characterId: character.id,
-            claimedAt: now
-        });
-        await saveHarem(harem);
-
-        // Establecer cooldown
-        cooldowns[userId] = now + 15 * 60 * 1000; // 15 minutos
+        // Enviar imagen
+        await conn.sendFile(m.chat, character.img[0], 'anime.jpg', message, m);
+        cooldowns[userId] = now + 15 * 60 * 1000; // 15 min cooldown
 
     } catch (error) {
-        console.error("Error en handler:", error);
-        await conn.reply(m.chat, `❌ Error: ${error.message}`, m);
+        console.error("Error en #rw:", error);
+        conn.reply(m.chat, `❌ Error: ${error.message}`, m);
     }
 };
 
 handler.help = ['rw', 'rollwaifu'];
 handler.tags = ['gacha'];
 handler.command = ['rw', 'rollwaifu'];
-handler.group = true;
 export default handler;
