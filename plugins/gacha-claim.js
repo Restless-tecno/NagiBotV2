@@ -1,83 +1,96 @@
 import { promises as fs } from 'fs';
 
-const charactersFilePath = './src/database/characters.json';
+// Archivos de base de datos
 const haremFilePath = './src/database/harem.json';
+const tempClaimPath = './src/database/tempClaim.json';
 
-const cooldowns = {};
-
-async function loadCharacters() {
+// Cargar harem
+async function loadHarem() {
     try {
-        const data = await fs.readFile(charactersFilePath, 'utf-8');
+        const data = await fs.readFile(haremFilePath, 'utf-8');
         return JSON.parse(data);
-    } catch (error) {
-        throw new Error('❀ No se pudo cargar el archivo characters.json.');
+    } catch {
+        return [];
     }
 }
 
-async function saveCharacters(characters) {
+// Guardar harem
+async function saveHarem(harem) {
+    await fs.writeFile(haremFilePath, JSON.stringify(harem, null, 2));
+}
+
+// Cargar tempClaim
+async function loadTempClaim() {
     try {
-        await fs.writeFile(charactersFilePath, JSON.stringify(characters, null, 2), 'utf-8');
-    } catch (error) {
-        throw new Error('❀ No se pudo guardar el archivo characters.json.');
+        const data = await fs.readFile(tempClaimPath, 'utf-8');
+        return JSON.parse(data);
+    } catch {
+        return {};
     }
 }
 
+// Guardar tempClaim
+async function saveTempClaim(tempClaim) {
+    await fs.writeFile(tempClaimPath, JSON.stringify(tempClaim, null, 2));
+}
+
+// Handler principal
 let handler = async (m, { conn }) => {
     const userId = m.sender;
     const now = Date.now();
 
-    if (cooldowns[userId] && now < cooldowns[userId]) {
-        const remainingTime = Math.ceil((cooldowns[userId] - now) / 1000);
-        const minutes = Math.floor(remainingTime / 60);
-        const seconds = remainingTime % 60;
-        return await conn.reply(m.chat, `《✧》Debes esperar *${minutes} minutos y ${seconds} segundos* para usar *#c* de nuevo.`, m);
-    }
+    try {
+        const [harem, tempClaim] = await Promise.all([loadHarem(), loadTempClaim()]);
+        const character = tempClaim[userId];
 
-    if (m.quoted && m.quoted.sender === conn.user.jid) {
-        try {
-            const characters = await loadCharacters();
-            const characterNameMatch = m.quoted.text.match(/❀ Nombre » \*(.+?)\*/);
-
-            if (!characterNameMatch) {
-                await conn.reply(m.chat, '《✧》No se pudo encontrar el nombre del personaje en el mensaje citado.', m);
-                return;
-            }
-
-            const characterName = characterNameMatch[1];
-            const character = characters.find(c => c.name === characterName);
-
-            if (!character) {
-                await conn.reply(m.chat, '《✧》El mensaje citado no es un personaje válido.', m);
-                return;
-            }
-
-            if (character.user && character.user !== userId) {
-                await conn.reply(m.chat, `《✧》El personaje *${character.name}* ya ha sido reclamado por @${character.user.split('@')[0]}, inténtalo a la próxima :v.`, m, { mentions: [character.user] });
-                return;
-            }
-
-            // Cambiar el estado del personaje a "Reclamado"
-            character.user = userId;
-            character.status = "Reclamado";
-
-            await saveCharacters(characters);
-
-            await conn.reply(m.chat, `✦ Has reclamado a *${character.name}* con éxito.`, m);
-            cooldowns[userId] = now + 30 * 60 * 1000;
-
-        } catch (error) {
-            await conn.reply(m.chat, `✘ Error al reclamar el personaje: ${error.message}`, m);
+        // Verificaciones
+        if (!character) {
+            return conn.reply(m.chat, "❌ Usa *#rw* primero para generar un personaje.", m);
         }
 
-    } else {
-        await conn.reply(m.chat, '《✧》Debes citar un personaje válido para reclamar.', m);
+        if (now > character.expires) {
+            delete tempClaim[userId];
+            await saveTempClaim(tempClaim);
+            return conn.reply(m.chat, "⌛ Tiempo agotado. Usa *#rw* de nuevo.", m);
+        }
+
+        if (harem.some(c => c.characterId === character.id)) {
+            delete tempClaim[userId];
+            await saveTempClaim(tempClaim);
+            return conn.reply(m.chat, "⚠️ Este personaje ya fue reclamado.", m);
+        }
+
+        // Añadir al harem
+        harem.push({
+            userId: userId,
+            characterId: character.id,
+            name: character.name,
+            img: character.img,
+            value: character.value || Math.floor(Math.random() * 9950) + 50,
+            claimedAt: now
+        });
+
+        // Limpiar tempClaim y guardar
+        delete tempClaim[userId];
+        await Promise.all([saveHarem(harem), saveTempClaim(tempClaim)]);
+
+        // Mensaje de éxito
+        await conn.reply(
+            m.chat, 
+            `🎉 *¡Personaje reclamado!*\n\n` +
+            `🌸 *Nombre:* ${character.name}\n` +
+            `💎 *Valor:* ${character.value}\n\n` +
+            `💾 Usa *#harem* para ver tu colección.`,
+            m
+        );
+
+    } catch (error) {
+        console.error("Error en #claim:", error);
+        conn.reply(m.chat, "❌ Error al reclamar. Intenta de nuevo.", m);
     }
 };
 
-handler.help = ['claim'];
+handler.help = ['claim', 'c'];
 handler.tags = ['gacha'];
-handler.command = ['c', 'claim', 'reclamar'];
-handler.group = true;
-handler.register = true;
-
+handler.command = ['claim', 'c'];
 export default handler;
