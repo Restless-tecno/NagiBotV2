@@ -34,6 +34,24 @@ const GET_RANDOM_CHARACTER = `
   }
 `;
 
+// Función para obtener valores ponderados
+function getWeightedValue() {
+  const random = Math.random();
+  
+  // Probabilidades:
+  // - 70% para valores pequeños (1-10,000)
+  // - 25% para valores medios (10,001-50,000)
+  // - 5% para valores grandes (50,001-100,000)
+  
+  if (random < 0.7) {
+    return Math.floor(Math.random() * 10000) + 1;
+  } else if (random < 0.95) {
+    return Math.floor(Math.random() * 40000) + 10001;
+  } else {
+    return Math.floor(Math.random() * 50000) + 50001;
+  }
+}
+
 async function fetchRandomCharacter() {
   try {
     const page = Math.floor(Math.random() * 50) + 1;
@@ -60,14 +78,14 @@ async function fetchRandomCharacter() {
                character.media.nodes[0].title.native;
     }
 
-    // Valor completamente aleatorio entre 1 y 100000
-    const value = Math.floor(Math.random() * 100000) + 1;
+    // Valor con probabilidad ponderada
+    const value = getWeightedValue();
 
     return {
       id: character.id,
       name: character.name.full,
       gender,
-      value, // Valor aleatorio
+      value,
       source,
       img: [character.image.large]
     };
@@ -77,7 +95,7 @@ async function fetchRandomCharacter() {
       id: 'default-' + Date.now(),
       name: 'Personaje Desconocido',
       gender: 'Desconocido',
-      value: Math.floor(Math.random() * 100000) + 1,
+      value: getWeightedValue(),
       source: 'Origen desconocido',
       img: ['https://i.imgur.com/6Z7DZ9m.jpg']
     };
