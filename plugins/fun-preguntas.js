@@ -22,4 +22,4 @@ export default handler
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-let res = ['Si','Tal vez sí','Posiblemente','Probablemente no','No','Imposible','Por que haces estas preguntas','Por eso te dejo','Para que quieres saber','No te dire la respuesta'].getRandom()
+let res = ['Si','Tal vez sí','Posiblemente','Probablemente no','No','Imposible','Por que haces estas preguntas','Por eso te dejo','Para que quieres saber','No te dire la respuesta', 'Anda a ver si el gallo puso'].getRandom()
